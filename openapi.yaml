@@ -1,0 +1,406 @@
+openapi: 3.1.0
+info:
+  title: RookieStuff - Autonomous Code Review & Refactoring Agent
+  description: An autonomous, stateful code review and refactoring agent built with
+    LangGraph, FastAPI, and GitHub API integration. Features isolated sandbox linting,
+    persistent memory checkpoints, and Human-in-the-Loop (HITL) review gates.
+  version: 0.1.0
+paths:
+  /api/webhooks/github:
+    post:
+      tags:
+      - Code Review
+      summary: Ingest GitHub PR Webhook
+      description: Receives Pull Request event payloads, extracts parameters, and
+        executes the LangGraph review pipeline up to the HITL approval gate.
+      operationId: github_webhook_api_webhooks_github_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GitHubWebhookPayload'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reviews/{thread_id}/approve:
+    post:
+      tags:
+      - Code Review
+      summary: Submit Human Review Decision
+      description: 'Accepts approval payloads (approved: true/false and optional feedback).
+        Re-routes to refactor on rejection or commits code on approval.'
+      operationId: submit_review_decision_api_reviews__thread_id__approve_post
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Thread Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reviews/{thread_id}:
+    get:
+      tags:
+      - Code Review
+      summary: Get Review Session State
+      description: Inspect current state, audit history, and next scheduled node for
+        a review session thread.
+      operationId: get_review_state_api_reviews__thread_id__get
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Thread Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewStateDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      tags:
+      - Health
+      summary: Root
+      description: Root welcome endpoint providing service status and metadata.
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health Check
+      description: Health check endpoint.
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    ApprovalPayload:
+      properties:
+        approved:
+          type: boolean
+          title: Approved
+          description: 'Approval status: true to apply, false to re-route'
+        feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Feedback
+          description: Optional reviewer feedback/instructions for refactoring
+      type: object
+      required:
+      - approved
+      title: ApprovalPayload
+      description: Payload for human approval / rejection decisions.
+      example:
+        approved: false
+        feedback: Use list comprehensions instead of loops
+    GitHubWebhookPayload:
+      properties:
+        repository_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repository Url
+          description: Repository URL or target PR URL
+        branch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch
+          description: Branch name under review
+        pr_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pr Url
+          description: Explicit Pull Request URL
+        code_contents:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code Contents
+          description: Optional raw code for testing
+        action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Action
+          description: GitHub event action (opened, synchronize)
+        number:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Number
+          description: PR number
+        pull_request:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Pull Request
+          description: Full GitHub PR object
+        repository:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Repository
+          description: Full GitHub repository object
+      type: object
+      title: GitHubWebhookPayload
+      description: 'Flexible GitHub Webhook payload schema.
+
+        Supports both standard GitHub webhook events (action, pull_request, repository)
+
+        and streamlined direct testing payloads (repository_url, branch, pr_url).'
+      example:
+        branch: feature/refactor
+        pr_url: https://github.com/octocat/Hello-World/pull/42
+        repository_url: https://github.com/octocat/Hello-World
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ReviewResponse:
+      properties:
+        thread_id:
+          type: string
+          title: Thread Id
+        is_approved:
+          type: boolean
+          title: Is Approved
+        status:
+          type: string
+          title: Status
+        reviewer_feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Feedback
+        refactored_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refactored Code
+        commit_sha:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Commit Sha
+        next_nodes:
+          items:
+            type: string
+          type: array
+          title: Next Nodes
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - thread_id
+      - is_approved
+      - status
+      - reviewer_feedback
+      - refactored_code
+      - commit_sha
+      - next_nodes
+      - message
+      title: ReviewResponse
+      description: Response returned upon review decision submission.
+    ReviewStateDetail:
+      properties:
+        thread_id:
+          type: string
+          title: Thread Id
+        pr_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pr Url
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        is_approved:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Approved
+        reviewer_feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Feedback
+        lint_errors:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lint Errors
+        refactored_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refactored Code
+        code_contents:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code Contents
+        commit_sha:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Commit Sha
+        history:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: History
+        next_nodes:
+          items:
+            type: string
+          type: array
+          title: Next Nodes
+      type: object
+      required:
+      - thread_id
+      - pr_url
+      - status
+      - is_approved
+      - reviewer_feedback
+      - lint_errors
+      - refactored_code
+      - code_contents
+      - commit_sha
+      - history
+      - next_nodes
+      title: ReviewStateDetail
+      description: Detailed inspection of a review thread state.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    WebhookResponse:
+      properties:
+        thread_id:
+          type: string
+          title: Thread Id
+        status:
+          type: string
+          title: Status
+        pr_url:
+          type: string
+          title: Pr Url
+        branch_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch Name
+        lint_errors:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lint Errors
+        refactored_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refactored Code
+        next_nodes:
+          items:
+            type: string
+          type: array
+          title: Next Nodes
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - thread_id
+      - status
+      - pr_url
+      - branch_name
+      - lint_errors
+      - refactored_code
+      - next_nodes
+      - message
+      title: WebhookResponse
+      description: Response returned upon PR webhook ingestion.
