@@ -65,7 +65,7 @@ GITHUB_TOKEN=ghp_yourPersonalAccessTokenHere
 OPENAI_API_KEY=sk-yourOpenAiApiKeyHere
 OPENAI_MODEL=gpt-4o-mini
 HOST=0.0.0.0
-PORT=8000
+PORT=3000
 ENVIRONMENT=development
 CHECKPOINTER_TYPE=memory
 ```
@@ -80,10 +80,12 @@ pip install -r requirements.txt
 ```bash
 uvicorn main:app --reload
 ```
-The server will start at `http://localhost:8000`. Interactive OpenAPI documentation is available at:
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI JSON**: `http://localhost:8000/openapi.json`
+The server will start at `http://localhost:3000`. Interactive OpenAPI documentation and Dashboard are available at:
+- **Interactive Review Dashboard**: `http://localhost:3000` or `http://localhost:3000/dashboard`
+- **Swagger UI**: `http://localhost:3000/docs`
+- **ReDoc**: `http://localhost:3000/redoc`
+- **OpenAPI JSON**: `http://localhost:3000/openapi.json`
+- **Health Check**: `http://localhost:3000/health`
 
 ### 4. Run Automated Tests
 ```bash
@@ -99,7 +101,7 @@ The system satisfies all 3 required evaluation test workflows:
 ### Test Case 1: Webhook PR Ingestion, Linting, & HITL Pause Gate
 Simulate an incoming GitHub PR webhook:
 ```bash
-curl -X POST "http://localhost:8000/api/webhooks/github" \
+curl -X POST "http://localhost:3000/api/webhooks/github" \
      -H "Content-Type: application/json" \
      -d '{
        "repository_url": "https://github.com/octocat/Hello-World",
@@ -113,7 +115,7 @@ curl -X POST "http://localhost:8000/api/webhooks/github" \
 ### Test Case 2: Feedback Input & Refactoring Proposal Re-route Loop
 Submit a review rejection with revision guidance:
 ```bash
-curl -X POST "http://localhost:8000/api/reviews/{thread_id}/approve" \
+curl -X POST "http://localhost:3000/api/reviews/{thread_id}/approve" \
      -H "Content-Type: application/json" \
      -d '{
        "approved": false,
@@ -125,7 +127,7 @@ curl -X POST "http://localhost:8000/api/reviews/{thread_id}/approve" \
 ### Test Case 3: Approval and Git Commit Write Back
 Submit human approval:
 ```bash
-curl -X POST "http://localhost:8000/api/reviews/{thread_id}/approve" \
+curl -X POST "http://localhost:3000/api/reviews/{thread_id}/approve" \
      -H "Content-Type: application/json" \
      -d '{
        "approved": true,
@@ -158,7 +160,7 @@ docker-compose up --build
 ### Run with Docker CLI
 ```bash
 docker build -t rookiestuff:latest .
-docker run -p 8000:8000 --env-file .env rookiestuff:latest
+docker run -p 3000:3000 --env-file .env rookiestuff:latest
 ```
 
 ---
@@ -216,3 +218,4 @@ The repository demonstrates disciplined developmental progress across 9 distinct
 7. `feat(api): implement FastAPI webhooks and human review approval endpoints`
 8. `test(pipeline): add comprehensive automated tests for sandbox, graph rollback, and API`
 9. `docs(deploy): add Docker configs, OpenAPI specification, and detailed README`
+
