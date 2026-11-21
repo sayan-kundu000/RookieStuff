@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
-    # Server Configuration
+    # Server Configuration - Defaults to port 3000
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 3000
 
     # Persistence / LangGraph Checkpoints
     checkpointer_type: Literal["memory", "sqlite"] = "memory"

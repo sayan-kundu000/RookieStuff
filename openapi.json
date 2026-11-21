@@ -147,11 +147,11 @@
     "/": {
       "get": {
         "tags": [
-          "Health"
+          "Dashboard & Health"
         ],
-        "summary": "Root",
-        "description": "Root welcome endpoint providing service status and metadata.",
-        "operationId": "root__get",
+        "summary": "Index",
+        "description": "Serves the interactive Human-in-the-Loop Review Dashboard for browser users,\nand JSON metadata for API clients.",
+        "operationId": "index__get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -164,10 +164,32 @@
         }
       }
     },
+    "/dashboard": {
+      "get": {
+        "tags": [
+          "Dashboard & Health"
+        ],
+        "summary": "Dashboard",
+        "description": "Direct endpoint for interactive Human-in-the-Loop Review Dashboard.",
+        "operationId": "dashboard_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
-          "Health"
+          "Dashboard & Health"
         ],
         "summary": "Health Check",
         "description": "Health check endpoint.",
