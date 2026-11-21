@@ -1,6 +1,6 @@
 # RookieStuff: Autonomous Code Review & Refactoring Agent with LangGraph
 
-- **Repository**: [https://github.com/example/RookieStuff](https://github.com/example/RookieStuff)
+- **Repository**: [https://github.com/sayan-kundu000/RookieStuff](https://github.com/sayan-kundu000/RookieStuff)
 - **Project Name**: RookieStuff
 - **Core Stack**: Python 3.11+, LangGraph, LangChain, GitHub API, FastAPI, Flake8/Black, Docker, Pytest
 
