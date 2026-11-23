@@ -1,7 +1,7 @@
 import uuid
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, status
+from typing import Dict, Any, Optional
+from fastapi import APIRouter, HTTPException, status, Body
 
 from app.api.schemas import (
     GitHubWebhookPayload,
@@ -21,8 +21,11 @@ logger = logging.getLogger("rookiestuff.api")
 router = APIRouter(prefix="/api", tags=["Code Review"])
 
 
-def extract_pr_info(payload: GitHubWebhookPayload) -> Dict[str, Any]:
+def extract_pr_info(payload: Optional[GitHubWebhookPayload]) -> Dict[str, Any]:
     """Normalize PR info from either full GitHub webhooks or direct test payloads."""
+    if payload is None:
+        payload = GitHubWebhookPayload()
+
     pr_url = payload.pr_url
     branch_name = payload.branch
     repo_name = None
@@ -67,52 +70,52 @@ def extract_pr_info(payload: GitHubWebhookPayload) -> Dict[str, Any]:
     summary="Ingest GitHub PR Webhook",
     description="Receives Pull Request event payloads, extracts parameters, and executes the LangGraph review pipeline up to the HITL approval gate.",
 )
-async def github_webhook(payload: GitHubWebhookPayload):
+async def github_webhook(payload: Optional[GitHubWebhookPayload] = Body(default=None)):
     """
     POST /api/webhooks/github
-    1. Extracts PR URL and repository details.
+    1. Extracts PR URL and repository details (with safe fallback if payload is empty).
     2. Initializes a new LangGraph thread.
     3. Runs pipeline: fetch_pr_node -> lint_code_node -> propose_refactor_node.
     4. Halts at interrupt_before=['apply_changes_node'] waiting for human validation.
     """
-    pr_info = extract_pr_info(payload)
-    thread_id = f"review-{uuid.uuid4().hex[:12]}"
-    config = {"configurable": {"thread_id": thread_id}}
-
-    logger.info(f"Triggering LangGraph review thread {thread_id} for PR {pr_info['pr_url']}")
-
-    initial_state = create_initial_state(
-        pr_url=pr_info["pr_url"],
-        repo_name=pr_info["repo_name"],
-        pr_number=pr_info["pr_number"],
-        branch_name=pr_info["branch_name"],
-        initial_code=pr_info.get("code_contents"),
-    )
-
     try:
+        pr_info = extract_pr_info(payload)
+        thread_id = f"review-{uuid.uuid4().hex[:12]}"
+        config = {"configurable": {"thread_id": thread_id}}
+
+        logger.info(f"Triggering LangGraph review thread {thread_id} for PR {pr_info['pr_url']}")
+
+        initial_state = create_initial_state(
+            pr_url=pr_info["pr_url"],
+            repo_name=pr_info["repo_name"],
+            pr_number=pr_info["pr_number"],
+            branch_name=pr_info["branch_name"],
+            initial_code=pr_info.get("code_contents"),
+        )
+
         # Executes until HITL interrupt gate before apply_changes_node
         review_graph.invoke(initial_state, config)
+
+        current_snapshot = review_graph.get_state(config)
+        values = current_snapshot.values
+        next_nodes = list(current_snapshot.next)
+
+        return WebhookResponse(
+            thread_id=thread_id,
+            status="paused_at_approval_checkpoint",
+            pr_url=values.get("pr_url", pr_info["pr_url"]),
+            branch_name=values.get("branch_name"),
+            lint_errors=values.get("lint_errors"),
+            refactored_code=values.get("refactored_code"),
+            next_nodes=next_nodes,
+            message="Review pipeline completed linting and refactor proposal. Paused at approval checkpoint.",
+        )
     except Exception as exc:
-        logger.error(f"Graph execution failed during webhook ingestion: {exc}")
+        logger.error(f"Graph execution failed during webhook ingestion: {exc}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Graph execution error: {str(exc)}",
         )
-
-    current_snapshot = review_graph.get_state(config)
-    values = current_snapshot.values
-    next_nodes = list(current_snapshot.next)
-
-    return WebhookResponse(
-        thread_id=thread_id,
-        status="paused_at_approval_checkpoint",
-        pr_url=values.get("pr_url", pr_info["pr_url"]),
-        branch_name=values.get("branch_name"),
-        lint_errors=values.get("lint_errors"),
-        refactored_code=values.get("refactored_code"),
-        next_nodes=next_nodes,
-        message="Review pipeline completed linting and refactor proposal. Paused at approval checkpoint.",
-    )
 
 
 @router.post(
@@ -182,7 +185,7 @@ async def submit_review_decision(thread_id: str, payload: ApprovalPayload):
                 message="Approved. Changes committed to repository branch successfully.",
             )
     except Exception as exc:
-        logger.error(f"Error handling approval decision for thread {thread_id}: {exc}")
+        logger.error(f"Error handling approval decision for thread {thread_id}: {exc}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process review decision: {str(exc)}",

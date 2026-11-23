@@ -316,6 +316,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         <span id="btnIngestText">Trigger Code Review Pipeline</span>
         <div class="loader" id="ingestLoader"></div>
       </button>
+
+      <div id="triggerErrorBanner" style="display: none; margin-top: 12px; padding: 10px; background-color: rgba(218, 54, 51, 0.15); border: 1px solid var(--accent-red); border-radius: 6px; font-size: 12px; color: #ff7b72;">
+        <strong>Error:</strong> <span id="triggerErrorText"></span>
+      </div>
     </div>
 
     <!-- Right Column: Interactive HITL Session -->
@@ -394,16 +398,24 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     const btn = document.getElementById("btnIngest");
     const loader = document.getElementById("ingestLoader");
     const btnText = document.getElementById("btnIngestText");
+    const errBanner = document.getElementById("triggerErrorBanner");
+    const errText = document.getElementById("triggerErrorText");
 
     btn.disabled = true;
     loader.style.display = "inline-block";
     btnText.textContent = "Running Pipeline...";
+    if (errBanner) errBanner.style.display = "none";
+
+    const repoUrlVal = document.getElementById("repoUrl").value.trim();
+    const branchVal = document.getElementById("branchName").value.trim();
+    const prUrlVal = document.getElementById("prUrl").value.trim();
+    const codeVal = document.getElementById("codeContents").value;
 
     const payload = {
-      repository_url: document.getElementById("repoUrl").value,
-      branch: document.getElementById("branchName").value,
-      pr_url: document.getElementById("prUrl").value,
-      code_contents: document.getElementById("codeContents").value
+      repository_url: repoUrlVal || "https://github.com/octocat/Hello-World",
+      branch: branchVal || "feature/refactor-pricing",
+      pr_url: prUrlVal || "https://github.com/octocat/Hello-World/pull/42",
+      code_contents: codeVal
     };
 
     try {
@@ -417,10 +429,27 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         currentThreadId = data.thread_id;
         renderSession(data);
       } else {
-        alert("Webhook Error: " + (data.detail || JSON.stringify(data)));
+        let msg = "Webhook ingestion failed.";
+        if (typeof data.detail === "string") {
+          msg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          msg = data.detail.map(d => (d.loc ? d.loc.join(".") + ": " : "") + d.msg).join("; ");
+        } else if (data.detail) {
+          msg = JSON.stringify(data.detail);
+        }
+        if (errBanner && errText) {
+          errText.textContent = msg;
+          errBanner.style.display = "block";
+        }
+        alert("Trigger Error: " + msg);
       }
     } catch (e) {
-      alert("Network Error: " + e.message);
+      const netMsg = "Network Error: Could not reach the server on port 3000. Please ensure the server is running.";
+      if (errBanner && errText) {
+        errText.textContent = netMsg;
+        errBanner.style.display = "block";
+      }
+      alert(netMsg);
     } finally {
       btn.disabled = false;
       loader.style.display = "none";

@@ -1,0 +1,180 @@
+================================================================================
+ROOKIESTUFF: AUTONOMOUS CODE REVIEW & REFACTORING AGENT WITH LANGGRAPH
+YOUTUBE VIDEO EXPLANATION SCRIPT & PRESENTER CHEAT SHEET (SHORT & SUPER SIMPLE)
+Target Runtime: ~10 - 12 Minutes
+================================================================================
+
+--------------------------------------------------------------------------------
+PART 1: THE QUICK OVERVIEW (WHAT IS IT IN SUPER SIMPLE WORDS?)
+--------------------------------------------------------------------------------
+RookieStuff is an automated AI junior developer.
+Whenever someone opens a Pull Request (PR) on GitHub:
+1. It pulls the code.
+2. It tests and lints the code in a safe sandbox folder (checks spacing, syntax, and bugs).
+3. It rewrites the code to be clean, pretty, and bug-free using an LLM.
+4. It STOPS before committing and calls you (Human-in-the-Loop).
+5. If you say "Fix this with list comprehensions", it rewinds, rewrites, and asks again.
+6. When you click "Approve", it pushes the clean code to GitHub automatically.
+
+--------------------------------------------------------------------------------
+PART 2: WHAT I HAVE USED (THE TECH STACK IN 5 BULLETS)
+--------------------------------------------------------------------------------
+1. Python 3.11: The programming language running everything.
+2. LangGraph: The "brain". Unlike simple AI chains that forget everything, LangGraph 
+   is a state machine. It remembers the whole conversation, can loop backward if you 
+   reject a draft, and pauses whenever you need human approval.
+3. Flake8 & Black: The quality inspectors. Flake8 finds bugs and styling flaws; 
+   Black cleans up indentation and formatting.
+4. FastAPI: The web server. It receives webhooks from GitHub and serves our web 
+   dashboard on http://localhost:3000.
+5. Docker & Pytest: Containerization to run anywhere, plus 16 automated tests to 
+   prove everything works.
+
+--------------------------------------------------------------------------------
+PART 3: WHAT IT DOES (THE 4 CORE STEPS)
+--------------------------------------------------------------------------------
+- Step 1: fetch_pr_node -> Pulls code from GitHub PR.
+- Step 2: lint_code_node -> Runs Flake8 and Black in a safe temporary folder.
+- Step 3: propose_refactor_node -> LLM generates clean code fixing the errors.
+- Step 4: apply_changes_node -> Paused by interrupt_before. Commits only when approved.
+
+--------------------------------------------------------------------------------
+PART 4: WHAT I SHOULD DO ON SCREEN (EXACT PRESENTER ACTIONS)
+--------------------------------------------------------------------------------
+1. Start camera: Show a real GitHub PR with 20+ nitpicky comments. Explain the pain.
+2. Show VS Code: Show requirements.txt and the clean architecture.
+3. Run terminal: Run .\run.bat or .\.venv\Scripts\python.exe -m uvicorn main:app --port 3000
+4. Open Chrome: Go to http://localhost:3000. Show the dark-mode dashboard.
+5. Click Trigger: Click "Trigger Code Review Pipeline" on the left panel.
+6. Show Pause Gate: Point out the yellow badge "Paused at Approval Checkpoint".
+7. Test Rejection: Type "Use list comprehensions instead of loops" and click 
+   "Reject & Re-route". Show the code change live on screen!
+8. Test Approval: Click "Approve & Commit". Show the green "Committed" badge and 
+   the real Git Commit SHA hash.
+9. Show Pytest: Run "pytest -v" in terminal to show 16 green passing tests.
+10. Outro: Show the GitHub repo link (github.com/sayan-kundu000/RookieStuff) and wrap up.
+
+================================================================================
+WORD-FOR-WORD SPOKEN SCRIPT (READ THIS IN YOUR VIDEO)
+================================================================================
+
+[00:00 - 02:00] SCENE 1: THE HOOK
+[ACTION: Look at camera with energy. Show a messy GitHub PR on screen with dozens of comments.]
+
+"Hey everyone! Look at this pull request on my screen. Twenty comments arguing 
+about missing spaces, wrong indentation, and messy loops. Senior developers spend 
+half their week pointing out these rookie mistakes, while junior developers wait 
+days just to get their code approved.
+
+Today, we are fixing that with RookieStuff. 
+
+It is an autonomous AI agent built with LangGraph, FastAPI, and Docker. 
+The moment someone opens a Pull Request on GitHub, RookieStuff steps in. 
+It tests the code inside a safe sandbox, fixes all formatting errors, writes 
+clean Python code, and pauses at an electronic gate. It will never push code 
+until you say yes. Let's see how it works!"
+
+[💡 PRESENTER TIP: Keep your energy high! Make the pain of slow code reviews relatable.]
+
+--------------------------------------------------------------------------------
+
+[02:00 - 04:00] SCENE 2: WHAT WE USED (THE TECH STACK)
+[ACTION: Switch to VS Code. Show requirements.txt and the folder structure.]
+
+"Let's look at what we used to build this. We chose five powerful tools:
+
+First, Python 3.11. Modern, fast, and rock-solid.
+
+Second, LangGraph. This is the brain of the project. Traditional AI scripts run in 
+a straight line and forget everything. LangGraph is a state machine: it remembers 
+every step, it can pause to wait for human feedback, and it can loop backward 
+if you want changes.
+
+Third, Flake8 and Black. These are our code inspectors. Flake8 checks for style 
+violations and bugs, while Black makes the code beautifully formatted.
+
+Fourth, FastAPI. It listens for webhooks from GitHub in milliseconds and serves 
+our web dashboard on port 3000.
+
+And fifth, Docker and Pytest. We have 16 automated tests that run in seconds, 
+and everything is packaged in a Docker container so it runs anywhere."
+
+[💡 PRESENTER TIP: Explain LangGraph simply: it is a smart map with loops and pauses.]
+
+--------------------------------------------------------------------------------
+
+[04:00 - 06:30] SCENE 3: LIVE DEMO - LAUNCHING & INGESTION
+[ACTION: Open terminal, run .\run.bat, open http://localhost:3000, and click 'Trigger Code Review Pipeline'.]
+
+"Now let's see it in action! 
+
+In our terminal, we run our helper script: .\run.bat. In one second, the server 
+starts up on port 3000. Let's open http://localhost:3000 in Google Chrome.
+
+Here is our dashboard! On the left side, we have our GitHub PR simulator. 
+Notice this sample code: it has bad two-space indentation, no spaces around 
+operators, and an old-school for-loop.
+
+Now watch what happens when I click 'Trigger Code Review Pipeline'. 
+
+Behind the scenes, the agent fetches the code, runs Flake8 and Black inside an 
+isolated temporary sandbox folder, and asks the AI to refactor it. 
+
+And look at the right side now! The status badge is glowing yellow: 
+'Paused at Approval Checkpoint'. Next node says 'apply_changes_node'. 
+The agent prepared clean code on the right, but it slammed on the brakes. 
+It refused to touch GitHub. It is patiently waiting for our permission!"
+
+[💡 PRESENTER TIP: Point your mouse to the side-by-side code boxes showing before and after.]
+
+--------------------------------------------------------------------------------
+
+[06:30 - 09:00] SCENE 4: HUMAN-IN-THE-LOOP FEEDBACK & ONE-CLICK COMMIT
+[ACTION: In feedback box, type 'Use list comprehensions instead of loops'. Click 'Reject & Re-route'. Then click 'Approve & Commit'.]
+
+"Now here is the coolest part of RookieStuff: Human-in-the-Loop review feedback.
+
+Suppose I look at this proposal and say: 'The formatting is clean, but I want modern 
+list comprehensions instead of loops.' 
+
+I type into the feedback box: 'Use list comprehensions instead of loops', and 
+I click the red button: 'Reject & Re-route'.
+
+Watch the screen! The agent immediately accepts my rejection, writes my feedback 
+into its memory, rewinds execution back to the refactoring node, and rewrites the code! 
+
+Look at the code box right now: it changed to 'sum([item['price'] for item in items])'! 
+It followed my exact instructions and paused right back at the gate.
+
+Now that I love the code, I click the green button: 'Approve & Commit'.
+
+Boom! Look at that status badge: it turned bright green: 'Committed (Completed)'! 
+The agent authored a real Git commit on the branch, and returned the unique Git 
+Commit SHA hash right here in our audit timeline. Zero safety risks, 100% human control!"
+
+[💡 PRESENTER TIP: Highlight the commit SHA hash in the audit list. It proves the write succeeded.]
+
+--------------------------------------------------------------------------------
+
+[09:00 - 11:00] SCENE 5: TESTS & WRAP-UP
+[ACTION: Open terminal, run 'pytest -v', show 16 green passed tests, then show GitHub repository.]
+
+"Under the hood, all of this is verified with automated tests. 
+Let's run 'pytest -v' in the terminal.
+
+Look at those green checkmarks! All 16 tests pass in seconds—testing our syntax 
+checker, the sandbox, the rollback loop, and the API endpoints.
+
+The entire project is open source on GitHub right now at:
+github.com/sayan-kundu000/RookieStuff
+
+You can clone it, double-click run.bat, and test it locally right now with zero API 
+keys needed because of our built-in offline mock fallbacks.
+
+If you enjoyed this, hit that like button, subscribe to the channel, and check 
+out the full documentation PDF in the repository. Thanks for watching, and happy coding!"
+
+================================================================================
+END OF SCRIPT
+================================================================================
+

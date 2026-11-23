@@ -181,3 +181,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         output_path = sys.argv[1]
     build_pdf(output_path)
+
